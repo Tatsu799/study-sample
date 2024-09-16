@@ -1,111 +1,124 @@
-/* 型ガードについて */
-/*
-型ガードは、ある変数が特定の型を持っていることをチェックし、その範囲で型を制約するための方法。
-型ガードはコードの特定の部分で変数が特定の型を持っていると保証します。
+/*ジェネリクス (generics) とは？*/
+
+/*引用
+あらゆる型で同じコードを使おうとすると、型の安全性が犠牲になります。
+逆に、型の安全性を重視しようとすると、同じようなコードを量産する必要が出てコードの共通化が達成しづらくなります。
+こうした問題を解決するために導入された言語機能がジェネリクスです。
+ジェネリクスを用いると、型の安全性とコードの共通化を両立することができます。
 */
 
-/* instanceof演算子、typeof演算子、in演算子などを使う */
-/* 基本的な使用例 */
+const chooseRandomlyString = (a: string, b: string): string => {
+  return Math.random() <= 0.5 ? a : b;
+};
 
-/* typeof演算子 */
-/*
-値に対して特定の型かどうかをチェックする。
-注意点は、値がnllの場合objectを返す点
+// const winOrLose = chooseRandomlyString('Won', ’Lose');
+// console.log(winOrLose);
+
+const chooseRandomlyNumber = (a: number, b: number): number => {
+  return Math.random() <= 0.5 ? a : b;
+};
+// const num: number = chooseRandomlyNumber(1, 2);
+// console.log(num);
+
+const urlA = new URL('https://example1.com');
+const urlB = new URL('https://example2.com');
+
+const chooseRandomlyURL = (a: URL, b: URL): URL => {
+  return Math.random() <= 0.5 ? a : b;
+};
+// const url: URL = chooseRandomlyURL(urlA, urlB);
+// console.log(url);
+
+//Sample anyにすると,どの値も受け取れるようにできるが、、、
+const chooseRandomlySample = (a: any, b: any): any => {
+  return Math.random() <= 0.5 ? a : b;
+};
+// let str = chooseRandomlySample(0, 1);
+// str = str.toLowerCase(); //stringで扱いたいが実行時にエラーになる
+
+/*どのように共通化すればいいのか?*/
+
+/*引用
+「ジェネリクスの発想は実はとてもシンプルで、型も変数のように扱えるようにする」
 */
 
-// const inputData = (data: string | number): string => {
-//   if (typeof data === 'number') {
-//     return data.toString();
-//   } else {
-//     return data;
-//   }
-// };
+/*
+以下のようにジェネリクスを使うことによって同じ記述で複数の型で利用できるよう共通化が可能になる
+型を引数のように扱えるようになる。
+*/
 
-// console.log(inputData('文字列'));
-// console.log(inputData(1234));
-
-/* instanceof演算子 */
-/* 要素がクラスのインスタンスかどうかをチェックする。*/
-
-type BaseCar = {
-  body: string;
-  tire: string;
-  engin: string;
+const chooseRandomly = <T>(a: T, b: T): T => {
+  //Tは観衆的に利用される
+  return Math.random() <= 0.5 ? a : b;
 };
 
-// class Truck implements BaseCar {
-//   body: 'truck';
-//   tire: 'loadTire';
-//   engin: 'strongEngin';
-//   loadingCapacity: string = '500kg';
-//   constructor() {}
-// }
+const str = chooseRandomly<string>('Won', 'Lose');
+// console.log(str);
+const num = chooseRandomly<number>(1, 5);
+// console.log(num);
+const url = chooseRandomly<URL>(urlA, urlB);
+// console.log(url.origin);
 
-// class ElectricCar implements BaseCar {
-//   body: 'normal';
-//   tire: 'normalTire';
-//   engin: 'baseEngin';
-//   chargingCapacity: string = '40kWh';
-//   constructor() {}
-// }
+/*classなどでも利用できる*/
 
-// const truck = new Truck();
-// const electricCar = new ElectricCar();
+class StringList {
+  private data: string[] = [];
+  constructor() {}
 
-// const getCarPrice = (car: Truck | ElectricCar) => {
-//   if (car instanceof Truck) {
-//     console.log('金額は500万円です');
-//   } else {
-//     console.log('金額は800万円です');
-//   }
-// };
-
-// getCarPrice(truck);
-// getCarPrice(electricCar);
-
-/* in演算子 */
-/* オブジェクトのプロパティの存在をチェックすることができる。*/
-
-// const checkCarFunction = (car: Truck | ElectricCar) => {
-//   if ('loadingCapacity' in car) {
-//     console.log('荷物をたくさん運べます');
-//   } else {
-//     console.log('電気を充電して利用できます');
-//   }
-// };
-
-// checkCarFunction(truck);
-// checkCarFunction(electricCar);
-
-//////////////////////////////////
-/* ユーザー定義のType Guard */
-
-type Truck = BaseCar & {
-  loadingCapacity: string;
-};
-
-type ElectricCar = BaseCar & {
-  chargingCapacity: string;
-};
-
-/* 自身でタイプガードを定義する */
-const isTruck = (car: any): car is Truck => {
-  if (car === null) {
-    return false;
+  addItem(item: string): void {
+    this.data.push(item);
   }
-  return 'loadingCapacity' in car;
-};
 
-// typeof data === 'number'
-const checkFunction = (car: Truck | ElectricCar) => {
-  if (isTruck(car)) {
-    console.log(car.loadingCapacity); // OK
-    // console.log(arg.chargingCapacity); // Error!
-  } else {
-    // console.log(arg.LoadingCapacity); // Error!
-    console.log(car.chargingCapacity); // OK
+  getItem(index: number): string {
+    return this.data[index];
   }
-};
+}
 
-checkFunction({ body: 'truck', tire: 'loadTire', engin: 'strongEngin', loadingCapacity: '500kg' });
-checkFunction({ body: 'normal', tire: 'normal', engin: 'baseEngin', chargingCapacity: '40kWh' });
+// const strList = new StringList();
+// strList.addItem('aaa');
+// //strList.addItem(0);// numberは追加できない
+// console.log(strList);
+// console.log(strList.getItem(0));
+
+class NumberList {
+  private data: number[] = [];
+  constructor() {}
+
+  addItem(item: number): void {
+    this.data.push(item);
+  }
+
+  getItem(index: number): number {
+    return this.data[index];
+  }
+}
+
+// const numList = new NumberList();
+// numList.addItem(1);
+// console.log(numList);
+// console.log(numList.getItem(1));
+
+class List<T> {
+  private data: T[] = [];
+  constructor() {}
+
+  addItem(item: T): void {
+    this.data.push(item);
+  }
+
+  getItem(index: number): T {
+    return this.data[index];
+  }
+}
+
+const strList = new List<string>();
+strList.addItem('aaa');
+strList.addItem('bbb');
+console.log(strList.getItem(0));
+console.log(strList.getItem(1));
+
+const numList = new List<number>();
+numList.addItem(1);
+numList.addItem(10);
+console.log(numList.getItem(0));
+console.log(numList.getItem(1));
